@@ -5,4 +5,4 @@ Miami International Airport is located at the perfect storm for domestic and int
 
 Over the weekend of August 16th and August 17th, 43% of all flights arrived between 1-7 pm. The 7 am to 1 pm timeframe was the second busiest for arrivals to Miami.
 
-Read Here: 
+Read Here: https://beyondtheaverage.wordpress.com/2019/08/24/miami-is-a-perfect-gateway-for-international-flights/
