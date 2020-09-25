@@ -1,5 +1,4 @@
-
-
+#import libraries 
 import pandas as pd 
 import numpy as np 
 import bokeh 
@@ -49,14 +48,14 @@ class Flight_Arrivals():
         cest['flight_time']=cest['flight_time']+360 
         cest['flight_time'] = cest['flight_time'].apply(lambda x: 561 if x < 400 else x)
 
-        #2. +03 south american flights?? 
+        #2.south american flights  
         sa=ok2[ok2.origin.str.contains("GIG|FOR|COR|EZE|Dois de|BSB|GRU|REC|MVD|BEL|SNU")]
         sa['flight_time']=sa['flight_time']+60
         sa['flight_time']=sa['flight_time'].apply(lambda x: 451.5 if x<350 else x)
         otro=ok2[~ok2.origin.str.contains('MAD|ZRH|BRU|MXP|CDG|DUS|FCO|VIE|FRA|Pisa|BCN|ZAZ|WAW|ORY|AMS|GIG|FOR|COR|EZE|Dois de|BSB|GRU|REC|MVD|BEL|SNU')]
         todos=pd.concat([cest,sa,otro],axis=0)
 
-        # percent less one hour 
+        # percent of flights less one hour 
         bins=[0,60,120,180,240,300,360,420,480,540,600,660]
         todos['flight_bins']=pd.cut(todos['flight_time'], bins)  
 
@@ -65,11 +64,11 @@ class Flight_Arrivals():
         pct_time.reset_index(level=0,inplace=True)
         pct_time['pct']=pct_time['flight_bins']/todos.shape[0]
 
-        #ii. variance por origin
+        #ii. variance by origin
         vaR=todos.groupby('origin')['flight_time'].var()
         vaR.sort_values() 
 
-        #iii. arrives part of the day 
+        #iii. arrives by part of the day 
         tiempo=todos[["origin","est_arr_time"]]
         t=tiempo 
         t['hours']=t['est_arr_time'].dt.hour
@@ -119,7 +118,7 @@ class Flight_Arrivals():
         west_cent=tX[tX.origin.str.contains('LAX|SFO|LAS|SEA|SAN|SNU|DFW|MEX|MDW|MSY|CMW|MEM|ORD|TUL|MSP|MCI|STL|MID|IAH|VRA|PNS|GDL|MTY|KSAT|BHM|SCU|HOG|TLC|HSV')]
         east=tX[tX.origin.str.contains('NAS|PHI|Toron|Bahama|DCA|HAV|ORF|TPA|LGA|JAX|SAV|SDF|PIE|GGT|PLS|CVG|PIT|CHS|CLE|JFK|CAP|IND|DTW|KEY|CMH|BUF|RDU|SFB|MYEH|MYAM|CYUL|GSP|PBI|RIC|GSO|FMY|BDL|BWI|KTEB|ZSA|KMLB|KAPF|SGJ')]
 
-        #length de flights 
+        #length of flights 
         wc=west_cent['flight_bins'].value_counts() 
         wc=pd.DataFrame(wc)
         wc.columns=['flight_time']
@@ -197,7 +196,7 @@ class Flight_Arrivals():
         output_file("mia3.html")
         #show(p)
 
-        #VIZ IV (outlier flight time plot)
+        #VIZ IV (outlier flights time plot)
         top_diez=tX['origin'].value_counts()
         top_diez=pd.DataFrame(top_diez)
         top_diez.reset_index(level=0,inplace=True)
@@ -231,7 +230,7 @@ class Flight_Arrivals():
             return group[(group.flight_time > upper.loc[originS]['flight_time']) | (group.flight_time < lower.loc[originS]['flight_time'])]['flight_time']
         out=groups.apply(outliers).dropna()
 
-        #prepare outlier data for plotting? 
+        #prepare outlier data for plotting 
         if not out.empty:
             outx=[]
             outy=[]
@@ -294,11 +293,3 @@ class Flight_Arrivals():
 if __name__=='__main__':
     flights=Flight_Arrivals()
     flights.flights()
-
-
-
-
-
-
-
-
