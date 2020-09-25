@@ -1,19 +1,20 @@
+#import libraries 
 import pandas as pd 
 import numpy as np 
 import math
-
 
 class Flight_Metrics():
     def _init__(self):
         pass
     
     def flights_met(self,file):
-        avion=pd.read_csv(file,encoding="latin-1") #fly_mia.csv
+        avion=pd.read_csv(file,encoding="latin-1") #read-in csv file        
         a=avion 
         a['est_arr_time'] = a['est_arr_time'].str.replace('?', '')
         a['est_arr_time']=a['est_arr_time'].str.replace(r"\(.*\)","")
         a=a[a.est_arr_time.str.contains('0')]
-
+        
+        #datetime sring manipulation 
         sun1=a[a.est_arr_time.str.contains('Sun')]
         sun1['est_arr_time'] = sun1['est_arr_time'].str.replace('Sun', '2019-08-18')
         sun1['dep_time'] = sun1['dep_time'].str.replace('Sun', '2019-08-18')
@@ -31,8 +32,8 @@ class Flight_Metrics():
         ok2['dep_time']=pd.to_datetime(ok2['dep_time'])
         ok2['est_arr_time']=pd.to_datetime(ok2['est_arr_time'])
 
-        ok2['flight_time']=ok2['est_arr_time']-ok2['dep_time']
-        ok2['flight_time']=ok2['flight_time'].dt.total_seconds()
+        ok2['flight_time']=ok2['est_arr_time']-ok2['dep_time'] #arrival time minus departure time 
+        ok2['flight_time']=ok2['flight_time'].dt.total_seconds() #to seconds 
         ok2['flight_time']=ok2['flight_time']/60 #to minutes
 
         #min and max flight time by group 
@@ -45,42 +46,38 @@ class Flight_Metrics():
         maxx=pd.merge(minF,maxF,on="origin") 
         maxx['diff_mm']=maxx.flight_time_x-maxx.flight_time_y
         maxx.sort_values(by="diff_mm")[['origin','diff_mm']]
-        print(maxx)
 
-        #1. central european time zones
+        #1. central europe time zone (convert to standard time) 
         cest=ok2[ok2.origin.str.contains('MAD|ZRH|BRU|MXP|CDG|DUS|FCO|VIE|FRA|Pisa|BCN|ZAZ|WAW|ORY|AMS')]
         cest['flight_time']=cest['flight_time']+360 
         cest['flight_time'] = cest['flight_time'].apply(lambda x: 561 if x < 400 else x)
 
-        #2. +03 south american flights 
+        #2.south america time zone (convert to standard time) 
         sa=ok2[ok2.origin.str.contains("GIG|FOR|COR|EZE|Dois de|BSB|GRU|REC|MVD|BEL|SNU")]
         sa['flight_time']=sa['flight_time']+60
         sa['flight_time']=sa['flight_time'].apply(lambda x: 451.5 if x<350 else x)
-
         otro=ok2[~ok2.origin.str.contains('MAD|ZRH|BRU|MXP|CDG|DUS|FCO|VIE|FRA|Pisa|BCN|ZAZ|WAW|ORY|AMS|GIG|FOR|COR|EZE|Dois de|BSB|GRU|REC|MVD|BEL|SNU')]
         todos=pd.concat([cest,sa,otro],axis=0)
 
-        #flight intervals 
+        #flight time interval (seconds) 
         bins=[0,60,120,180,240,300,360,420,480,540,600,660]
         todos['flight_bins']=pd.cut(todos['flight_time'], bins)  
-
         pct_time=todos['flight_bins'].value_counts()
         pct_time=pd.DataFrame(pct_time)
         pct_time.reset_index(level=0,inplace=True)
         pct_time['pct']=pct_time['flight_bins']/todos.shape[0]
 
-        #arrivals part of the day 
+        #flight arrivals by time of the day 
         tiempo=todos[["origin","est_arr_time"]] 
         t=tiempo 
         t['hours']=t['est_arr_time'].dt.hour
         t['minutes']=t['est_arr_time'].dt.minute 
-
         mid_six=t[(t.hours>=0) & (t.hours<=6)]
         seven_twelve=t[(t.hours>=7) & (t.hours<=12)]
         one_six=t[(t.hours>=13) & (t.hours<=18)]
         seven_twelve1=t[(t.hours>=19) & (t.hours<=23)]
 
-        #percent by time of day
+        #percent of flight arrivals by time of the day
         mid_sixP=mid_six.shape[0]/t.shape[0]
         print(mid_sixP)
         seven_twelveP=seven_twelve.shape[0]/t.shape[0]
@@ -90,14 +87,14 @@ class Flight_Metrics():
         seven_twelveP1=seven_twelve1.shape[0]/t.shape[0]
         print(seven_twelveP1) 
 
-        #origin counts 
+        #flight departure counts  
         ori=t['origin'].value_counts()
         ori=pd.DataFrame(ori)
         ori.reset_index(level=0,inplace=True)
         ori.columns=['origin','total']
         print(ori)
 
-        #percent origin arrivals 
+        #percent flight departure arrivals 
         arr1=mid_six['origin'].value_counts()
         arr1=pd.DataFrame(arr1)
         arr1.reset_index(level=0,inplace=True)
@@ -127,13 +124,13 @@ class Flight_Metrics():
         arr4['pct']=arr4.arr4/arr4.total
         arr4.sort_values(by="pct")
 
-        #arrival percents (tiempo de dia)
+        #arrival percents (time of the day)
         arr1P=arr1.arr1.sum()/t.shape[0]
         arr2P=arr2.arr2.sum()/t.shape[0]
         arr3P=arr3.arr3.sum()/t.shape[0]
         arr4P=arr4.arr4.sum()/t.shape[0]
 
-        #time between flights -------------------------------------
+        #time between flights 
         tX=todos
         tX.sort_values(['origin','dep_time'],inplace=True)
         tX['diff_dep']=tX['dep_time'].diff()
@@ -143,7 +140,7 @@ class Flight_Metrics():
         tX['diff_dep']=tX['diff_dep']/60 #to minutes  
         tX=tX[~(tX.diff_dep==0)]
 
-        #outliers -----------------------------------------------
+        #outliers
         def get_num_outliers (column):
             q1 = np.percentile(column, 25)
             q3 = np.percentile(column, 75)
@@ -152,7 +149,7 @@ class Flight_Metrics():
         best=tX[["origin","flight_time"]]
         best.groupby('origin').agg([get_num_outliers])
 
-        #iqr por airport 
+        #iqr by departure airport 
         def get_iqr (column):
             q1 = np.percentile(column, 25)
             q3 = np.percentile(column, 75)
@@ -164,7 +161,7 @@ class Flight_Metrics():
         iqr=iqr[iqr['iqr']>0]
         iqr.reset_index(level=0,inplace=True)
 
-        #difference entre departures 
+        #difference in time between departures 
         takeoffs=tX.groupby('origin')['diff_dep'].median() 
         takeoffs=pd.DataFrame(takeoffs)
         takeoffs.reset_index(level=0,inplace=True)
